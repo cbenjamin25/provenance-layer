@@ -1,0 +1,29 @@
+{
+  "mediaAsset": {
+    "id": "b13f9a2e-8c21-4d99-ae4f-91b82f9a32ef",
+    "filename": "campaign_interview.mp4",
+    "hash": "a9f3c0e6b1d7e42c5a9c4f8b71e2e3f9c8b7d6e5f4a3b2c1d0e9f8a7b6c5",
+    "uploadTimestamp": "2025-12-19T14:32:00Z"
+  },
+  "verificationRecord": {
+    "mediaId": "b13f9a2e-8c21-4d99-ae4f-91b82f9a32ef",
+    "chainEvents": [
+      {
+        "eventType": "created",
+        "timestamp": "2025-12-19T14:31:10Z",
+        "actor": "camera-device-uuid"
+      },
+      {
+        "eventType": "uploaded",
+        "timestamp": "2025-12-19T14:32:00Z",
+        "actor": "user:cedric"
+      },
+      {
+        "eventType": "verified",
+        "timestamp": "2025-12-19T14:32:05Z",
+        "actor": "system"
+      }
+    ],
+    "verificationStatus": "verified"
+  }
+}
