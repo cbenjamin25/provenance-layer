@@ -1,0 +1,27 @@
+{
+  "mediaAsset": {
+    "id": "a5a28fce-ec51-49f2-bcb0-d57240fe2b07",
+    "filename": "sample.txt",
+    "path": "/Users/cedricbenjamin/provenance-layer/sample.txt",
+    "sizeBytes": 17,
+    "uploadedAt": "2025-12-20T00:25:37.357Z",
+    "hash": {
+      "algo": "sha256",
+      "value": "acaa8e0c277d49ba0a2c56a94b310d38e207f0f7e133f20b893eacf7f08af44e"
+    }
+  },
+  "chainEvents": [
+    {
+      "eventType": "hash_generated",
+      "timestamp": "2025-12-20T00:25:37.358Z",
+      "actor": "user",
+      "details": {
+        "algo": "sha256"
+      }
+    }
+  ],
+  "verificationRecord": {
+    "mediaId": null,
+    "status": "HASHED_ONLY"
+  }
+}
