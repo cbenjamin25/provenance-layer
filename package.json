@@ -1,0 +1,8 @@
+{
+  "name": "provenance-layer",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "hash": "node scripts/hash-file.js"
+  }
+}
