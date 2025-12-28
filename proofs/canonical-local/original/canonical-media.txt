@@ -1,0 +1,2 @@
+PROVENANCE — CANONICAL LOCAL PROOF EXAMPLE
+This file demonstrates a genesis anchor and a verifiable proof artifact.

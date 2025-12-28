@@ -1,0 +1,27 @@
+{
+  "mediaAsset": {
+    "id": "canonical-local-001",
+    "filename": "canonical-media.txt",
+    "sha256": "87485de07fdceecacf7be50180f549ca50e2773e6f0e4dd54620b1e9d993fb6b",
+    "uploadTimestampUtc": "2025-12-28T21:48:18Z",
+    "source": {
+      "boundary": "LOCAL",
+      "path": "proofs/canonical-local/original/canonical-media.txt"
+    }
+  },
+  "verificationRecord": {
+    "mediaId": "canonical-local-001",
+    "verificationStatus": "VERIFIED",
+    "chainEvents": [
+      {
+        "eventType": "GENESIS_ANCHORED",
+        "timestampUtc": "2025-12-28T21:48:18Z",
+        "actor": "user",
+        "details": {
+          "algorithm": "SHA-256",
+          "genesisAnchor": "87485de07fdceecacf7be50180f549ca50e2773e6f0e4dd54620b1e9d993fb6b"
+        }
+      }
+    ]
+  }
+}
