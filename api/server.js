@@ -24,10 +24,40 @@ import {
 } from "@aws-sdk/client-s3";
 
 const app = express();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } }); // 100MB max
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } }); // 25MB max for public demo
 
 app.use(cors());
 app.use(express.json());
+
+// ---------------------------------------------------------------------------
+// Rate limiting (simple in-memory)
+// ---------------------------------------------------------------------------
+const rateLimits = new Map();
+const RATE_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_MAX_UPLOAD = 10;  // 10 uploads per minute
+const RATE_MAX_READ = 60;    // 60 reads per minute
+
+function rateLimit(key, max) {
+  const now = Date.now();
+  const entry = rateLimits.get(key) || { count: 0, resetAt: now + RATE_WINDOW_MS };
+  if (now > entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + RATE_WINDOW_MS;
+  }
+  entry.count++;
+  rateLimits.set(key, entry);
+  return entry.count <= max;
+}
+
+function rateLimitMiddleware(type, max) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress;
+    if (!rateLimit(`${type}:${ip}`, max)) {
+      return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
+    }
+    next();
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Config
@@ -302,7 +332,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // Upload file
-app.post("/api/upload", upload.single("file"), async (req, res) => {
+app.post("/api/upload", rateLimitMiddleware("upload", RATE_MAX_UPLOAD), upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file provided" });
 
@@ -339,7 +369,7 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
 });
 
 // Upload by hash (client-side hashing — just register provenance without uploading file)
-app.post("/api/anchor", async (req, res) => {
+app.post("/api/anchor", rateLimitMiddleware("upload", RATE_MAX_UPLOAD), async (req, res) => {
   try {
     const { hash, filename, size, content_type } = req.body;
     if (!hash || hash.length !== 64) {
@@ -427,7 +457,7 @@ app.post("/api/anchor", async (req, res) => {
 });
 
 // List all assets
-app.get("/api/assets", async (req, res) => {
+app.get("/api/assets", rateLimitMiddleware("read", RATE_MAX_READ), async (req, res) => {
   try {
     const prefix = `${PROOF_PREFIX}assets/`;
     const resp = await s3.send(new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefix, Delimiter: "/" }));
