@@ -568,8 +568,10 @@ app.get("/", (req, res) => {
 // ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
-app.listen(PORT, () => {
-  console.log(`◈ Provenance Layer API running on port ${PORT}`);
+const HOST = process.env.HOST || "0.0.0.0";
+
+const server = app.listen(PORT, HOST, () => {
+  console.log(`◈ Provenance Layer API running on ${HOST}:${PORT}`);
   console.log(`  Bucket: ${BUCKET}`);
   console.log(`  Region: ${REGION}`);
   console.log(`  Endpoints:`);
@@ -580,4 +582,9 @@ app.listen(PORT, () => {
   console.log(`    GET  /api/assets/:id/verify  Verify chain`);
   console.log(`    GET  /api/verify?hash=   Lookup by hash`);
   console.log(`    GET  /api/health         Health check`);
+});
+
+server.on("error", (err) => {
+  console.error("Server error:", err);
+  process.exit(1);
 });
