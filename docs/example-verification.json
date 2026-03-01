@@ -1,29 +1,17 @@
 {
-  "mediaAsset": {
-    "id": "b13f9a2e-8c21-4d99-ae4f-91b82f9a32ef",
-    "filename": "campaign_interview.mp4",
-    "hash": "a9f3c0e6b1d7e42c5a9c4f8b71e2e3f9c8b7d6e5f4a3b2c1d0e9f8a7b6c5",
-    "uploadTimestamp": "2025-12-19T14:32:00Z"
+  "schema_version": "1.0",
+  "asset_id": "9b44a085972c8f0d",
+  "verified_at": "2026-03-01T03:18:33.368833+00:00",
+  "chain_valid": true,
+  "chain_status": "VERIFIED",
+  "events_checked": 3,
+  "latest_hash": "cece5c91042c2eb9d7d21fc1a82594c528230388860ef54f10ff0419b3ae89ff",
+  "latest_event_id": "3ff7f0b0-0829-40c9-9790-c49cc0d1afec",
+  "live_file_hash": "cece5c91042c2eb9d7d21fc1a82594c528230388860ef54f10ff0419b3ae89ff",
+  "errors": [],
+  "verifier": {
+    "service": "provenance-layer-verifier",
+    "version": "1.0"
   },
-  "verificationRecord": {
-    "mediaId": "b13f9a2e-8c21-4d99-ae4f-91b82f9a32ef",
-    "chainEvents": [
-      {
-        "eventType": "created",
-        "timestamp": "2025-12-19T14:31:10Z",
-        "actor": "camera-device-uuid"
-      },
-      {
-        "eventType": "uploaded",
-        "timestamp": "2025-12-19T14:32:00Z",
-        "actor": "user:cedric"
-      },
-      {
-        "eventType": "verified",
-        "timestamp": "2025-12-19T14:32:05Z",
-        "actor": "system"
-      }
-    ],
-    "verificationStatus": "verified"
-  }
+  "_comment": "Real verification output from a 3-event chain (genesis → v2 → v3). Chain intact, live file matches tip."
 }

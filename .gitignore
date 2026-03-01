@@ -1,1 +1,7 @@
 __pycache__/
+*.pyc
+.env
+.credentials/
+node_modules/
+*.zip
+.DS_Store

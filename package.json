@@ -1,8 +1,11 @@
 {
   "name": "provenance-layer",
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "description": "Cryptographic authenticity infrastructure for digital media",
   "private": true,
   "scripts": {
-    "hash": "node scripts/hash-file.js"
+    "hash": "node scripts/hash-file.js",
+    "test": "python3 scripts/test_chain.py",
+    "verify": "python3 scripts/verify.py"
   }
 }

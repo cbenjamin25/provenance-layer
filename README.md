@@ -1,44 +1,123 @@
-# Provenance Layer (working name)
+# Provenance Layer
 
-**MVP:** The Provenance Layer is a neutral authenticity infrastructure that records where digital media comes from, how it changes, and who performed each verified action — by establishing a tamper-evident chain of custody from capture through every transformation event.
+**Cryptographic authenticity infrastructure for digital media.**
 
-This enables studios, content owners, journalists, third parties, and regulators to independently assess the authenticity and integrity of digital media without relying on a single authority.
+Provenance Layer records where digital media comes from, how it changes, and who performed each action — establishing a tamper-evident chain of custody from capture through every transformation.
 
-Creates an immutable integrity record for media.
-Allows users to independently verify authenticity and modification history.
+> Provenance is to media what HTTPS is to web traffic — a baseline expectation.
 
-## Core Objective
+## How It Works
 
-The objective of this system is to establish a verifiable, tamper-evident provenance record for digital media.
+```
+Upload file → Genesis anchor (SHA-256) → Chain events track every change → Verify anytime
+```
 
-The platform enables users and third parties to:
-- Prove origin (when a media asset was created and first anchored)
-- Prove authorship and actions (who performed each recorded event)
-- Detect modification (whether content has changed since its genesis anchor)
-- Share a standalone verification record that can be independently verified without trusting the platform
+1. **Genesis Anchor** — When media enters the system, a cryptographic fingerprint (SHA-256) is computed and recorded as the immutable origin point.
 
-This is achieved through cryptographic hashing and an append-only chain of custody model.
+2. **Chain of Custody** — Every subsequent change creates a new chain event, cryptographically linked to the previous state via `previous_hash → new_hash`.
 
-## Core Concepts
+3. **Verification** — Walk the hash chain to prove integrity. If any file or event is altered, the chain breaks — tampering is detected instantly.
 
-- Genesis Anchor: The initial cryptographic fingerprint of a media asset at the moment it enters the system.
-This anchor establishes the starting point for all future verification.
+4. **Proof Artifact** — A portable, machine-readable bundle that can be independently verified by studios, journalists, courts, or regulators without trusting the platform.
 
-- Chain of Custody: An append-only sequence of immutable events representing verified actions taken on a media asset over time.
+## Architecture
 
-- Neutrality: The system records what happened, when, and by whom — without asserting intent, truthfulness, or meaning.
+```
+S3 (media/)
+  → S3 ObjectCreated event
+  → Lambda (hash + chain linkage)
+  → S3 (proofs/assets/{id}/)
+       ├── mediaasset.json        # Asset identity + current state
+       ├── manifest.json           # Ordered event chain
+       ├── events/{id}.json        # Individual chain events
+       └── verification/latest.json # Verification record
+```
 
-## Core Data Model
+- **Ingestion is event-driven** — upload a file, provenance is recorded automatically
+- **Chain linkage is cryptographic** — H0 → H1 → H2 → … → Hn. Break any link, verification fails.
+- **Identical re-uploads are detected** and skipped (no duplicate events)
 
-- MediaAsset: identifies the media and anchors its provenance history (id, filename, hash, upload timestamp)
-- ChainEvent: immutable lifecycle event recorded in order (event type, timestamp, actor: user or system)
-- VerificationRecord: A portable verification object containing: media identifier, cryptographic integrity data, full chain of custody, verification status
+## Data Model
 
-## How Verification Works (MVP)
+### MediaAsset
+The logical identity of a file across time. Begins at genesis, evolves through chain events.
 
-1. A media file is uploaded to the system.
-2. A cryptographic hash is generated from the file contents (genesis anchor)
-3. Each action is recorded as an immutable chain event.
-4. The system validates integrity using hash comparison and event ordering.
-5. A verification record is generated.
-6. This record can be shared and independently verified.
+| Field | Description |
+|-------|-------------|
+| `asset_id` | Stable identifier (deterministic from storage path) |
+| `original_hash` | SHA-256 at genesis |
+| `current_hash` | SHA-256 of latest version |
+| `origin` | Source attribution (device, service, user) |
+| `content` | File metadata (type, size, dimensions) |
+
+### ChainEvent
+An immutable transformation step with cryptographic linkage.
+
+| Field | Description |
+|-------|-------------|
+| `event_type` | `ingest`, `transform`, `transcode`, `ai_transform`, `publish` |
+| `previous_hash` | Must equal prior event's `new_hash` (null for genesis) |
+| `new_hash` | SHA-256 of output bytes |
+| `actor` | Who performed the action (human or service) |
+| `tool` | What tool was used |
+| `timestamp` | When it happened |
+
+### VerificationRecord
+The output of chain verification — proves integrity or detects tampering.
+
+| Field | Description |
+|-------|-------------|
+| `chain_valid` | `true` if all links verify |
+| `chain_status` | `VERIFIED` or `TAMPERED` |
+| `events_checked` | Number of events walked |
+| `live_file_hash` | Current file hash vs chain tip |
+| `errors` | What broke (if tampered) |
+
+## Quick Start
+
+### Verify an asset
+```bash
+python scripts/verify.py provenance-layer-media-cb --key media/photo.jpg
+```
+
+### Verify all assets
+```bash
+python scripts/verify.py provenance-layer-media-cb --all
+```
+
+### Local test (no AWS needed)
+```bash
+python scripts/test_chain.py
+```
+
+### Hash a file locally
+```bash
+node scripts/hash-file.js path/to/file
+```
+
+## What This Solves
+
+| Scenario | Without Provenance | With Provenance Layer |
+|----------|-------------------|----------------------|
+| Deepfake circulates | No way to verify origin | Genesis anchor proves when original entered the system |
+| Image edited and re-shared | No record of changes | Chain of custody shows every transformation |
+| Court needs digital evidence | Metadata is mutable, easily challenged | Cryptographic proof artifact is independently verifiable |
+| Studio distributes content | No chain of custody after delivery | Every handoff is a recorded chain event |
+
+## Project Status
+
+- ✅ Event-driven ingestion pipeline (S3 + Lambda)
+- ✅ Cryptographic hash chain with `previous_hash → new_hash` linkage
+- ✅ Genesis anchor creation
+- ✅ Chain event appending on file updates
+- ✅ Identical re-upload detection
+- ✅ Verification walker with tamper detection
+- ✅ Live file hash validation against chain tip
+- 🔜 Web interface (upload + verify)
+- 🔜 Digital signatures per event
+- 🔜 Canonical Proof Artifact bundler
+- 🔜 API endpoints
+
+## License
+
+All rights reserved. © Cedric Benjamin
