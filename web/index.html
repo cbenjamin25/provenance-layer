@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provenance Layer</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #1e1e2e;
+      --text: #e0e0e8;
+      --text-dim: #8888a0;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.15);
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      padding: 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+    }
+
+    header p {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-top: 0.5rem;
+    }
+
+    main {
+      width: 100%;
+      max-width: 720px;
+      padding: 2rem;
+      flex: 1;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 0.75rem;
+      text-align: center;
+      font-size: 0.85rem;
+      cursor: pointer;
+      background: var(--surface);
+      border: none;
+      color: var(--text-dim);
+      transition: all 0.2s;
+    }
+
+    .tab:not(:last-child) { border-right: 1px solid var(--border); }
+    .tab.active { background: var(--accent-glow); color: var(--accent); font-weight: 600; }
+    .tab:hover:not(.active) { background: #16161f; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: var(--surface);
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .upload-zone .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .upload-zone .label { font-size: 0.9rem; color: var(--text-dim); }
+    .upload-zone .sublabel { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.5rem; opacity: 0.6; }
+
+    input[type="file"] { display: none; }
+
+    /* Results */
+    .result {
+      margin-top: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .result h3 {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1rem;
+    }
+
+    .field {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+
+    .field:last-child { border-bottom: none; }
+    .field .key { color: var(--text-dim); white-space: nowrap; margin-right: 1rem; }
+    .field .value { text-align: right; word-break: break-all; font-weight: 500; }
+
+    .hash {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.75rem;
+      color: var(--accent);
+    }
+
+    .status-verified {
+      color: var(--green);
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .status-tampered {
+      color: var(--red);
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .status-processing {
+      color: var(--amber);
+      font-weight: 700;
+    }
+
+    /* Chain visualization */
+    .chain {
+      margin-top: 1rem;
+    }
+
+    .chain-event {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 0.75rem 0;
+      position: relative;
+    }
+
+    .chain-event:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 11px;
+      top: 2.2rem;
+      bottom: -0.5rem;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .chain-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent-glow);
+      border: 2px solid var(--accent);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+    }
+
+    .chain-dot.genesis { border-color: var(--green); background: rgba(34, 197, 94, 0.15); }
+
+    .chain-info { flex: 1; }
+    .chain-type { font-weight: 600; font-size: 0.8rem; }
+    .chain-hash { font-size: 0.7rem; color: var(--text-dim); margin-top: 0.25rem; font-family: monospace; }
+    .chain-time { font-size: 0.7rem; color: var(--text-dim); }
+
+    /* Verify input */
+    .verify-input {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .verify-input input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .verify-input input:focus { border-color: var(--accent); }
+    .verify-input input::placeholder { color: var(--text-dim); opacity: 0.5; }
+
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .or-divider {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      margin: 1rem 0;
+    }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top: 2px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    footer {
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>◈ PROVENANCE LAYER</h1>
+  <p>Cryptographic authenticity infrastructure for digital media</p>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('upload')">Upload</button>
+    <button class="tab" onclick="switchTab('verify')">Verify</button>
+  </div>
+
+  <!-- UPLOAD PANEL -->
+  <div id="panel-upload" class="panel active">
+    <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">◈</div>
+      <div class="label">Drop a file or click to upload</div>
+      <div class="sublabel">SHA-256 hash computed locally in your browser</div>
+    </div>
+    <input type="file" id="fileInput" onchange="handleFile(this.files[0])">
+    <div id="uploadResult"></div>
+  </div>
+
+  <!-- VERIFY PANEL -->
+  <div id="panel-verify" class="panel">
+    <div class="verify-input">
+      <input type="text" id="verifyHash" placeholder="Paste SHA-256 hash to verify...">
+      <button class="btn" onclick="verifyByHash()">Verify</button>
+    </div>
+    <div class="or-divider">— or —</div>
+    <div class="upload-zone" id="verifyDropZone" onclick="document.getElementById('verifyFileInput').click()" style="padding: 2rem;">
+      <div class="icon" style="font-size: 1.5rem;">🔍</div>
+      <div class="label">Drop a file to verify its integrity</div>
+      <div class="sublabel">File is hashed locally — never uploaded</div>
+    </div>
+    <input type="file" id="verifyFileInput" onchange="verifyFile(this.files[0])">
+    <div id="verifyResult"></div>
+  </div>
+</main>
+
+<footer>
+  Provenance Layer · Hashes computed client-side · No files leave your browser during verification
+</footer>
+
+<script>
+  // --- Tab switching ---
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+    document.getElementById(`panel-${name}`).classList.add('active');
+  }
+
+  // --- Drag and drop ---
+  ['dropZone', 'verifyDropZone'].forEach(id => {
+    const zone = document.getElementById(id);
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (id === 'dropZone') handleFile(file);
+      else verifyFile(file);
+    });
+  });
+
+  // --- SHA-256 in browser ---
+  async function computeSHA256(file) {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // --- Format bytes ---
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  // --- Handle upload ---
+  async function handleFile(file) {
+    if (!file) return;
+    const result = document.getElementById('uploadResult');
+    result.innerHTML = `
+      <div class="result">
+        <h3><span class="spinner"></span> Computing hash...</h3>
+      </div>`;
+
+    const hash = await computeSHA256(file);
+    const now = new Date().toISOString();
+
+    const genesisEvent = {
+      schema_version: "1.0",
+      event_id: crypto.randomUUID(),
+      event_type: "ingest",
+      transformation: "genesis_anchor",
+      previous_hash: null,
+      new_hash: hash,
+      timestamp: now,
+      actor: { type: "human", id: "browser_upload" },
+    };
+
+    result.innerHTML = `
+      <div class="result">
+        <h3>Genesis Anchor</h3>
+        <div class="field">
+          <span class="key">File</span>
+          <span class="value">${file.name}</span>
+        </div>
+        <div class="field">
+          <span class="key">Size</span>
+          <span class="value">${formatBytes(file.size)}</span>
+        </div>
+        <div class="field">
+          <span class="key">Type</span>
+          <span class="value">${file.type || 'unknown'}</span>
+        </div>
+        <div class="field">
+          <span class="key">SHA-256</span>
+          <span class="value hash">${hash}</span>
+        </div>
+        <div class="field">
+          <span class="key">Anchored</span>
+          <span class="value">${new Date().toLocaleString()}</span>
+        </div>
+
+        <div class="chain" style="margin-top: 1.5rem;">
+          <h3>Chain of Custody</h3>
+          <div class="chain-event">
+            <div class="chain-dot genesis">●</div>
+            <div class="chain-info">
+              <div class="chain-type">GENESIS ANCHOR</div>
+              <div class="chain-hash">${hash}</div>
+              <div class="chain-time">${now}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    // Store in localStorage for verification
+    const assets = JSON.parse(localStorage.getItem('provenance_assets') || '{}');
+    assets[hash] = {
+      filename: file.name,
+      size: file.size,
+      type: file.type,
+      hash: hash,
+      anchored_at: now,
+      events: [genesisEvent],
+    };
+    localStorage.setItem('provenance_assets', JSON.stringify(assets));
+  }
+
+  // --- Verify by hash ---
+  function verifyByHash() {
+    const hash = document.getElementById('verifyHash').value.trim().toLowerCase();
+    if (!hash || hash.length !== 64) {
+      showVerifyResult(null, hash, 'Invalid SHA-256 hash (expected 64 hex characters)');
+      return;
+    }
+
+    const assets = JSON.parse(localStorage.getItem('provenance_assets') || '{}');
+    const asset = assets[hash];
+
+    if (asset) {
+      showVerifyResult(asset, hash);
+    } else {
+      showVerifyResult(null, hash, 'No provenance record found for this hash');
+    }
+  }
+
+  // --- Verify file ---
+  async function verifyFile(file) {
+    if (!file) return;
+    const result = document.getElementById('verifyResult');
+    result.innerHTML = `
+      <div class="result">
+        <h3><span class="spinner"></span> Computing hash...</h3>
+      </div>`;
+
+    const hash = await computeSHA256(file);
+    const assets = JSON.parse(localStorage.getItem('provenance_assets') || '{}');
+    const asset = assets[hash];
+
+    if (asset) {
+      showVerifyResult(asset, hash, null, file.name);
+    } else {
+      // Check if any asset has this hash in its chain
+      let found = null;
+      for (const [key, a] of Object.entries(assets)) {
+        for (const evt of a.events) {
+          if (evt.new_hash === hash) {
+            found = a;
+            break;
+          }
+        }
+        if (found) break;
+      }
+
+      if (found) {
+        showVerifyResult(found, hash, null, file.name);
+      } else {
+        showVerifyResult(null, hash, `No provenance record found for ${file.name}`, file.name);
+      }
+    }
+  }
+
+  // --- Show verify result ---
+  function showVerifyResult(asset, hash, error, filename) {
+    const result = document.getElementById('verifyResult');
+
+    if (error) {
+      result.innerHTML = `
+        <div class="result">
+          <h3>Verification Result</h3>
+          ${filename ? `<div class="field"><span class="key">File</span><span class="value">${filename}</span></div>` : ''}
+          <div class="field">
+            <span class="key">Hash</span>
+            <span class="value hash">${hash}</span>
+          </div>
+          <div class="field">
+            <span class="key">Status</span>
+            <span class="value status-tampered">NOT FOUND</span>
+          </div>
+          <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-dim);">
+            ${error}
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Verify chain integrity
+    let chainValid = true;
+    let chainErrors = [];
+    let expectedPrev = null;
+
+    for (let i = 0; i < asset.events.length; i++) {
+      const evt = asset.events[i];
+      if (i === 0 && evt.previous_hash !== null) {
+        chainErrors.push(`Genesis has non-null previous_hash`);
+        chainValid = false;
+      }
+      if (i > 0 && evt.previous_hash !== expectedPrev) {
+        chainErrors.push(`Chain break at event ${i}`);
+        chainValid = false;
+      }
+      expectedPrev = evt.new_hash;
+    }
+
+    // Check if hash matches chain tip
+    const hashMatchesTip = hash === asset.events[asset.events.length - 1].new_hash;
+
+    const eventsHtml = asset.events.map((evt, i) => `
+      <div class="chain-event">
+        <div class="chain-dot ${i === 0 ? 'genesis' : ''}">●</div>
+        <div class="chain-info">
+          <div class="chain-type">${evt.event_type === 'ingest' ? 'GENESIS ANCHOR' : evt.transformation.toUpperCase()}</div>
+          <div class="chain-hash">${evt.new_hash}</div>
+          <div class="chain-time">${evt.timestamp}</div>
+        </div>
+      </div>
+    `).join('');
+
+    result.innerHTML = `
+      <div class="result">
+        <h3>Verification Result</h3>
+        ${filename ? `<div class="field"><span class="key">File</span><span class="value">${filename}</span></div>` : ''}
+        <div class="field">
+          <span class="key">Original File</span>
+          <span class="value">${asset.filename}</span>
+        </div>
+        <div class="field">
+          <span class="key">Hash</span>
+          <span class="value hash">${hash}</span>
+        </div>
+        <div class="field">
+          <span class="key">Chain Status</span>
+          <span class="value ${chainValid ? 'status-verified' : 'status-tampered'}">${chainValid ? '✓ VERIFIED' : '✗ TAMPERED'}</span>
+        </div>
+        <div class="field">
+          <span class="key">Events</span>
+          <span class="value">${asset.events.length}</span>
+        </div>
+        <div class="field">
+          <span class="key">Anchored</span>
+          <span class="value">${new Date(asset.anchored_at).toLocaleString()}</span>
+        </div>
+
+        <div class="chain" style="margin-top: 1.5rem;">
+          <h3>Chain of Custody</h3>
+          ${eventsHtml}
+        </div>
+      </div>`;
+  }
+</script>
+
+</body>
+</html>
