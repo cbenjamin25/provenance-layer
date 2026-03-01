@@ -62,10 +62,13 @@ def read_json(bucket: str, key: str):
     try:
         obj = s3.get_object(Bucket=bucket, Key=key)
         return json.loads(obj["Body"].read())
-    except s3.exceptions.NoSuchKey:
-        return None
     except Exception as e:
-        if "NoSuchKey" in str(e) or "404" in str(e):
+        error_code = getattr(e, "response", {}).get("Error", {}).get("Code", "")
+        # NoSuchKey is expected for new assets. AccessDenied can also mean
+        # "key does not exist" when the role lacks s3:ListBucket.
+        if error_code in ("NoSuchKey", "404", "AccessDenied", "NoSuchBucket"):
+            return None
+        if any(s in str(e) for s in ("NoSuchKey", "does not exist", "404", "Access Denied")):
             return None
         raise
 
