@@ -73,25 +73,37 @@ The output of chain verification — proves integrity or detects tampering.
 | `live_file_hash` | Current file hash vs chain tip |
 | `errors` | What broke (if tampered) |
 
-## Quick Start
+## Live Demo
 
-### Verify an asset
+**Try it now:** [https://c2yaomspxmga3btoxh4kjpjqnm0zbkbm.lambda-url.us-east-1.on.aws/](https://c2yaomspxmga3btoxh4kjpjqnm0zbkbm.lambda-url.us-east-1.on.aws/)
+
+Upload a file, verify its integrity, and browse all tracked assets — no credentials needed.
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/upload` | Upload file → genesis anchor or chain append |
+| `POST` | `/api/anchor` | Register hash without uploading the file |
+| `GET` | `/api/assets` | List all tracked assets |
+| `GET` | `/api/assets/:id` | Full asset details + chain history |
+| `GET` | `/api/assets/:id/verify` | Verify chain integrity |
+| `GET` | `/api/verify?hash=` | Lookup by SHA-256 hash |
+| `GET` | `/api/health` | Service health check |
+
+### Local Development
+
 ```bash
+# Verify an asset
 python scripts/verify.py provenance-layer-media-cb --key media/photo.jpg
-```
 
-### Verify all assets
-```bash
+# Verify all assets
 python scripts/verify.py provenance-layer-media-cb --all
-```
 
-### Local test (no AWS needed)
-```bash
+# Local test (no AWS needed)
 python scripts/test_chain.py
-```
 
-### Hash a file locally
-```bash
+# Hash a file locally
 node scripts/hash-file.js path/to/file
 ```
 
@@ -113,10 +125,13 @@ node scripts/hash-file.js path/to/file
 - ✅ Identical re-upload detection
 - ✅ Verification walker with tamper detection
 - ✅ Live file hash validation against chain tip
-- 🔜 Web interface (upload + verify)
+- ✅ REST API (serverless Lambda + Function URL)
+- ✅ Web interface (upload, verify, browse assets)
+- ✅ Publicly accessible — no credentials needed
+- 🔜 Custom domain
 - 🔜 Digital signatures per event
 - 🔜 Canonical Proof Artifact bundler
-- 🔜 API endpoints
+- 🔜 API keys for partners
 
 ## License
 
