@@ -8,3 +8,5 @@ node_modules/
 api/node_modules/
 api/.venv/
 provenance-layer-*.tgz
+sdk/dist/
+sdk/node_modules/

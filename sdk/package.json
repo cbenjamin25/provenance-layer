@@ -1,0 +1,27 @@
+{
+  "name": "@provenance/sdk",
+  "version": "1.0.0",
+  "description": "Provenance Layer SDK — cryptographic media authenticity in three lines of code",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test.mjs"
+  },
+  "keywords": ["provenance", "authenticity", "integrity", "sha256", "chain-of-custody", "media"],
+  "author": "Cedric Benjamin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cbenjamin25/provenance-layer"
+  }
+}
