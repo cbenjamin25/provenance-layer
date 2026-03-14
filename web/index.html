@@ -3,99 +3,544 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Provenance Layer</title>
+  <title>Provenance Layer — Cryptographic Authenticity for Digital Media</title>
+  <meta name="description" content="Provenance Layer provides cryptographic chain-of-custody infrastructure for digital media. Anchor, track, and verify the authenticity of any file.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
   <style>
     :root {
       --bg: #0a0a0f;
       --surface: #12121a;
+      --surface-raised: #16161f;
       --border: #1e1e2e;
+      --border-light: #2a2a3e;
       --text: #e0e0e8;
       --text-dim: #8888a0;
+      --text-muted: #55556a;
       --accent: #6366f1;
+      --accent-light: #818cf8;
       --accent-glow: rgba(99, 102, 241, 0.15);
+      --accent-glow-strong: rgba(99, 102, 241, 0.25);
       --green: #22c55e;
       --green-glow: rgba(34, 197, 94, 0.1);
       --red: #ef4444;
       --red-glow: rgba(239, 68, 68, 0.1);
       --amber: #f59e0b;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    html { scroll-behavior: smooth; }
+
     body {
-      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-family: var(--font-body);
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* ===== NAV ===== */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
+      background: rgba(10, 10, 15, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(30, 30, 46, 0.5);
+      transition: all 0.3s ease;
     }
 
-    header {
-      width: 100%;
-      padding: 2rem;
-      text-align: center;
-      border-bottom: 1px solid var(--border);
+    nav.scrolled {
+      background: rgba(10, 10, 15, 0.95);
+      border-bottom-color: var(--border);
     }
 
-    header h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      letter-spacing: 0.05em;
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .nav-logo-icon {
+      font-size: 1.3rem;
       color: var(--accent);
     }
 
-    header p {
-      font-size: 0.85rem;
+    .nav-logo-text {
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .nav-links a {
       color: var(--text-dim);
-      margin-top: 0.5rem;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
     }
 
-    main {
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      background: var(--accent) !important;
+      color: white !important;
+      padding: 0.5rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600 !important;
+      transition: all 0.2s !important;
+    }
+
+    .nav-cta:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    #apiBadge {
+      display: inline-block;
+      font-size: 0.6rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: var(--green-glow);
+      color: var(--green);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      margin-left: 0.5rem;
+      vertical-align: middle;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    #apiBadge.offline {
+      background: var(--red-glow);
+      color: var(--red);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 8rem 2rem 6rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      border: 1px solid var(--border-light);
+      background: var(--surface);
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 2rem;
+      animation: fadeInUp 0.6s ease;
+    }
+
+    .hero-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-dot 2s ease infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      max-width: 800px;
+      margin-bottom: 1.5rem;
+      animation: fadeInUp 0.6s ease 0.1s both;
+    }
+
+    .hero h1 .gradient-text {
+      background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 50%, var(--accent-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--text-dim);
+      max-width: 560px;
+      line-height: 1.6;
+      margin-bottom: 2.5rem;
+      animation: fadeInUp 0.6s ease 0.2s both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      animation: fadeInUp 0.6s ease 0.3s both;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent);
+      color: white;
+      padding: 0.875rem 2rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-body);
+    }
+
+    .hero-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(99, 102, 241, 0.3);
+    }
+
+    .hero-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-dim);
+      padding: 0.875rem 1.5rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+      background: transparent;
+      cursor: pointer;
+      font-family: var(--font-body);
+    }
+
+    .hero-secondary:hover {
+      border-color: var(--border-light);
+      color: var(--text);
+      background: var(--surface);
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== HOW IT WORKS ===== */
+    .section {
+      padding: 6rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
       width: 100%;
-      max-width: 760px;
-      padding: 2rem;
-      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
     }
 
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .section-title {
+      font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .section-desc {
+      font-size: 1.05rem;
+      color: var(--text-dim);
+      text-align: center;
+      max-width: 560px;
+      margin: 0 auto 3.5rem;
+      line-height: 1.6;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 3.5rem;
+      left: calc(16.66% + 2rem);
+      right: calc(16.66% + 2rem);
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--border-light), var(--accent));
+      opacity: 0.4;
+    }
+
+    .step {
+      text-align: center;
+      padding: 2rem 1.5rem;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--surface) 0%, rgba(18, 18, 26, 0.5) 100%);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .step:hover {
+      border-color: var(--border-light);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .step-number {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      background: var(--accent-glow);
+      border: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.25rem;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--accent);
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .step h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    .step p {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    /* ===== VALUE PROPS ===== */
+    .values {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    .value-card {
+      padding: 2rem;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      transition: all 0.3s ease;
+    }
+
+    .value-card:hover {
+      border-color: var(--border-light);
+      transform: translateY(-2px);
+    }
+
+    .value-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 10px;
+      background: var(--accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .value-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    .value-card p {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      line-height: 1.55;
+    }
+
+    /* ===== APP SECTION ===== */
+    .app-section {
+      padding: 6rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .app-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+
+    .app-container {
+      max-width: 760px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .app-wrapper {
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-wrapper::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.5;
+    }
+
+    .app-glow {
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 200px;
+      background: radial-gradient(ellipse, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Tabs */
     .tabs {
       display: flex;
       gap: 0;
       margin-bottom: 2rem;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 12px;
       overflow: hidden;
+      background: var(--bg);
     }
 
     .tab {
       flex: 1;
-      padding: 0.75rem;
+      padding: 0.875rem;
       text-align: center;
-      font-size: 0.85rem;
+      font-size: 0.875rem;
       cursor: pointer;
-      background: var(--surface);
+      background: transparent;
       border: none;
       color: var(--text-dim);
       transition: all 0.2s;
+      font-family: var(--font-body);
+      font-weight: 500;
     }
 
     .tab:not(:last-child) { border-right: 1px solid var(--border); }
-    .tab.active { background: var(--accent-glow); color: var(--accent); font-weight: 600; }
-    .tab:hover:not(.active) { background: #16161f; }
+
+    .tab.active {
+      background: var(--accent-glow);
+      color: var(--accent-light);
+      font-weight: 600;
+    }
+
+    .tab:hover:not(.active) { background: var(--surface-raised); color: var(--text); }
 
     .panel { display: none; }
     .panel.active { display: block; }
 
     /* Upload zone */
     .upload-zone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
+      border: 2px dashed var(--border-light);
+      border-radius: 16px;
       padding: 3rem 2rem;
       text-align: center;
       cursor: pointer;
       transition: all 0.3s;
-      background: var(--surface);
+      background: rgba(18, 18, 26, 0.5);
     }
 
     .upload-zone:hover, .upload-zone.dragover {
@@ -103,9 +548,23 @@
       background: var(--accent-glow);
     }
 
-    .upload-zone .icon { font-size: 2.5rem; margin-bottom: 1rem; }
-    .upload-zone .label { font-size: 0.9rem; color: var(--text-dim); }
-    .upload-zone .sublabel { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.5rem; opacity: 0.6; }
+    .upload-zone .icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .upload-zone .label {
+      font-size: 0.95rem;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    .upload-zone .sublabel {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
 
     input[type="file"] { display: none; }
 
@@ -114,41 +573,52 @@
       margin-top: 1.5rem;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
+      border-radius: 16px;
+      padding: 1.75rem;
       animation: fadeIn 0.3s ease;
     }
 
-    .result.verified { border-color: var(--green); background: var(--green-glow); }
-    .result.tampered { border-color: var(--red); background: var(--red-glow); }
+    .result.verified {
+      border-color: var(--green);
+      background: var(--green-glow);
+    }
 
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .result.tampered {
+      border-color: var(--red);
+      background: var(--red-glow);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     .result h3 {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--text-dim);
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
       margin-bottom: 1rem;
+      font-weight: 700;
     }
 
     .field {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      padding: 0.6rem 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.8rem;
+      padding: 0.65rem 0;
+      border-bottom: 1px solid rgba(30, 30, 46, 0.6);
+      font-size: 0.85rem;
     }
 
     .field:last-child { border-bottom: none; }
-    .field .key { color: var(--text-dim); white-space: nowrap; margin-right: 1rem; }
-    .field .value { text-align: right; word-break: break-all; font-weight: 500; }
+    .field .key { color: var(--text-dim); white-space: nowrap; margin-right: 1rem; font-weight: 500; }
+    .field .value { text-align: right; word-break: break-all; font-weight: 600; }
 
     .hash {
-      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-family: var(--font-mono);
       font-size: 0.72rem;
-      color: var(--accent);
+      color: var(--accent-light);
     }
 
     .status-verified { color: var(--green); font-weight: 700; font-size: 1.1rem; }
@@ -189,9 +659,9 @@
 
     .chain-info { flex: 1; }
     .chain-type { font-weight: 600; font-size: 0.8rem; }
-    .chain-hash { font-size: 0.68rem; color: var(--text-dim); margin-top: 0.25rem; font-family: monospace; }
-    .chain-time { font-size: 0.7rem; color: var(--text-dim); }
-    .chain-link { font-size: 0.65rem; color: var(--accent); margin-top: 0.15rem; opacity: 0.7; }
+    .chain-hash { font-size: 0.68rem; color: var(--text-dim); margin-top: 0.25rem; font-family: var(--font-mono); }
+    .chain-time { font-size: 0.75rem; color: var(--text-dim); }
+    .chain-link { font-size: 0.65rem; color: var(--accent); margin-top: 0.15rem; opacity: 0.7; font-family: var(--font-mono); }
 
     /* Verify input */
     .verify-input {
@@ -202,42 +672,47 @@
 
     .verify-input input {
       flex: 1;
-      background: var(--surface);
+      background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      padding: 0.875rem 1rem;
       color: var(--text);
-      font-family: inherit;
+      font-family: var(--font-mono);
       font-size: 0.85rem;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all 0.2s;
     }
 
-    .verify-input input:focus { border-color: var(--accent); }
-    .verify-input input::placeholder { color: var(--text-dim); opacity: 0.5; }
+    .verify-input input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .verify-input input::placeholder { color: var(--text-muted); }
 
     .btn {
       background: var(--accent);
       color: white;
       border: none;
-      border-radius: 8px;
-      padding: 0.75rem 1.5rem;
-      font-family: inherit;
-      font-size: 0.85rem;
+      border-radius: 12px;
+      padding: 0.875rem 1.75rem;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
       white-space: nowrap;
     }
 
-    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
 
     .or-divider {
       text-align: center;
-      color: var(--text-dim);
-      font-size: 0.75rem;
-      margin: 1rem 0;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin: 1.25rem 0;
+      font-weight: 500;
     }
 
     .spinner {
@@ -256,114 +731,443 @@
 
     /* Assets list */
     .asset-card {
-      background: var(--surface);
+      background: rgba(18, 18, 26, 0.5);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem;
+      border-radius: 12px;
+      padding: 1.25rem;
       margin-bottom: 0.75rem;
       cursor: pointer;
       transition: all 0.2s;
     }
 
-    .asset-card:hover { border-color: var(--accent); }
+    .asset-card:hover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+      transform: translateX(4px);
+    }
 
-    .asset-card .name { font-weight: 600; font-size: 0.85rem; }
-    .asset-card .meta { font-size: 0.72rem; color: var(--text-dim); margin-top: 0.4rem; }
-    .asset-card .hash-preview { font-size: 0.68rem; color: var(--accent); margin-top: 0.25rem; font-family: monospace; }
+    .asset-card .name { font-weight: 600; font-size: 0.9rem; }
+    .asset-card .meta { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.4rem; }
+    .asset-card .hash-preview { font-size: 0.68rem; color: var(--accent-light); margin-top: 0.25rem; font-family: var(--font-mono); }
 
     .badge {
       display: inline-block;
       font-size: 0.65rem;
-      padding: 0.15rem 0.5rem;
-      border-radius: 4px;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
       font-weight: 600;
     }
 
-    .badge-events { background: var(--accent-glow); color: var(--accent); }
+    .badge-events { background: var(--accent-glow); color: var(--accent-light); }
 
     .empty-state {
       text-align: center;
       padding: 3rem;
       color: var(--text-dim);
-      font-size: 0.85rem;
+      font-size: 0.9rem;
     }
 
+    /* ===== FOOTER ===== */
     footer {
-      padding: 2rem;
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
       text-align: center;
-      font-size: 0.7rem;
+    }
+
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .footer-brand-icon {
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+
+    .footer-brand-text {
+      font-weight: 600;
+      font-size: 0.9rem;
       color: var(--text-dim);
-      opacity: 0.5;
     }
 
-    .api-badge {
-      display: inline-block;
-      font-size: 0.6rem;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      background: var(--green-glow);
-      color: var(--green);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      margin-left: 0.5rem;
-      vertical-align: middle;
+    .footer-links {
+      display: flex;
+      gap: 2rem;
     }
 
-    .api-badge.offline {
-      background: var(--red-glow);
-      color: var(--red);
-      border-color: rgba(239, 68, 68, 0.3);
+    .footer-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text); }
+
+    .footer-copy {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2rem;
+      text-align: center;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      nav { padding: 0.75rem 1rem; }
+
+      .nav-links a:not(.nav-cta) { display: none; }
+
+      .hero { padding: 7rem 1.5rem 4rem; min-height: auto; }
+
+      .hero-actions {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .hero-cta, .hero-secondary {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .section, .app-section { padding: 4rem 1.5rem; }
+
+      .steps {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .steps::before { display: none; }
+
+      .values {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .app-wrapper { padding: 1.5rem; border-radius: 16px; }
+
+      .verify-input {
+        flex-direction: column;
+      }
+
+      .field {
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .field .value { text-align: left; }
+
+      .footer-inner {
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .footer-links { gap: 1.25rem; }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 2rem; }
+      .hero-sub { font-size: 0.95rem; }
+      .app-wrapper { padding: 1.25rem; }
+      .upload-zone { padding: 2rem 1rem; }
+    }
+
+    /* ===== SCROLL REVEAL ===== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
   </style>
 </head>
 <body>
 
-<header>
-  <h1>◈ PROVENANCE LAYER <span id="apiBadge" class="api-badge offline">OFFLINE</span></h1>
-  <p>Cryptographic authenticity infrastructure for digital media</p>
-</header>
-
-<main>
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('upload')">Upload</button>
-    <button class="tab" onclick="switchTab('verify')">Verify</button>
-    <button class="tab" onclick="switchTab('assets')">Assets</button>
+<!-- NAV -->
+<nav id="mainNav">
+  <a href="#" class="nav-logo">
+    <span class="nav-logo-icon">◈</span>
+    <span class="nav-logo-text">Provenance Layer</span>
+    <span id="apiBadge" class="offline">OFFLINE</span>
+  </a>
+  <div class="nav-links">
+    <a href="#how-it-works">How It Works</a>
+    <a href="#why">Why PL</a>
+    <a href="#integrate">Integrate</a>
+    <a href="https://github.com/cbenjamin25/provenance-layer" target="_blank">GitHub</a>
+    <a href="#app" class="nav-cta">Try It →</a>
   </div>
+</nav>
 
-  <!-- UPLOAD PANEL -->
-  <div id="panel-upload" class="panel active">
-    <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-      <div class="icon">◈</div>
-      <div class="label">Drop a file or click to upload</div>
-      <div class="sublabel">File is uploaded to Provenance Layer and anchored with SHA-256</div>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="hero-badge-dot"></span>
+    Open Source
+  </div>
+  <h1><span class="gradient-text">◈ Provenance Layer</span></h1>
+  <p class="hero-sub">
+    Cryptographic authenticity infrastructure for digital media
+  </p>
+  <div class="hero-actions">
+    <a href="#app" class="hero-cta">Anchor a File ↓</a>
+    <a href="#how-it-works" class="hero-secondary">Learn More</a>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section reveal" id="how-it-works">
+  <div class="section-label">How It Works</div>
+  <h2 class="section-title">Three steps to provable authenticity</h2>
+  <p class="section-desc">Every file gets a cryptographic fingerprint, an immutable history, and independent verifiability — no trusted third party required.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-number">1</div>
+      <div class="step-icon">📤</div>
+      <h3>Upload</h3>
+      <p>Upload any file. Provenance Layer computes a SHA-256 hash and stores it as a genesis event.</p>
     </div>
-    <input type="file" id="fileInput" onchange="handleUpload(this.files[0])">
-    <div id="uploadResult"></div>
-  </div>
-
-  <!-- VERIFY PANEL -->
-  <div id="panel-verify" class="panel">
-    <div class="verify-input">
-      <input type="text" id="verifyHash" placeholder="Paste SHA-256 hash to verify...">
-      <button class="btn" onclick="verifyByHash()">Verify</button>
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-icon">⛓️</div>
+      <h3>Anchor</h3>
+      <p>Each version is chained cryptographically. Every transformation is logged with hash-linked events.</p>
     </div>
-    <div class="or-divider">— or —</div>
-    <div class="upload-zone" id="verifyDropZone" onclick="document.getElementById('verifyFileInput').click()" style="padding: 2rem;">
-      <div class="icon" style="font-size: 1.5rem;">🔍</div>
-      <div class="label">Drop a file to verify its integrity</div>
-      <div class="sublabel">File is hashed locally — never uploaded</div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-icon">✅</div>
+      <h3>Verify</h3>
+      <p>Anyone can verify the full chain of custody. Tampered files are instantly detectable.</p>
     </div>
-    <input type="file" id="verifyFileInput" onchange="verifyFile(this.files[0])">
-    <div id="verifyResult"></div>
+  </div>
+</section>
+
+<!-- WHY PROVENANCE LAYER -->
+<section class="section reveal" id="why">
+  <div class="section-label">Why Provenance Layer</div>
+  <h2 class="section-title">The trust layer the internet is missing</h2>
+  <p class="section-desc">In the age of deepfakes and synthetic media, you need infrastructure that proves authenticity without relying on any single authority.</p>
+
+  <div class="values">
+    <div class="value-card">
+      <div class="value-icon">🔐</div>
+      <h3>Cryptographic Proof</h3>
+      <p>SHA-256 hashing with hash-linked chains. Mathematically verifiable, not trust-based. You don't have to take anyone's word for it.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">🌐</div>
+      <h3>Platform Neutral</h3>
+      <p>Works with any file type, any platform, any workflow. No walled gardens. Upload via API, SDK, or web.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">🔍</div>
+      <h3>Independent Verification</h3>
+      <p>Anyone can verify a file's provenance without special software. Open protocol, open verification, open trust.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">🏛️</div>
+      <h3>No Single Authority</h3>
+      <p>No central gatekeeper decides what's authentic. Cryptography is the authority. The math doesn't lie.</p>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section class="section reveal" id="use-cases">
+  <div class="section-label">Built For</div>
+  <h2 class="section-title">Who uses Provenance Layer</h2>
+  <p class="section-desc">Any industry where the authenticity of digital artifacts determines outcomes.</p>
+
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; max-width: 900px; margin: 3rem auto 0;">
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; transition: all 0.3s; cursor: default;" onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="font-size: 2rem; margin-bottom: 0.75rem;">📰</div>
+      <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">Newsrooms</div>
+      <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.6;">Verify source photos before publication. Prove chain of custody in court.</div>
+    </div>
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; transition: all 0.3s; cursor: default;" onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="font-size: 2rem; margin-bottom: 0.75rem;">⚖️</div>
+      <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">Legal & Compliance</div>
+      <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.6;">Tamper-evident digital evidence. No expert witness needed.</div>
+    </div>
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; transition: all 0.3s; cursor: default;" onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="font-size: 2rem; margin-bottom: 0.75rem;">🎬</div>
+      <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">Studios & Creators</div>
+      <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.6;">Prove original creation. Protect IP with cryptographic origin records.</div>
+    </div>
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; transition: all 0.3s; cursor: default;" onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="font-size: 2rem; margin-bottom: 0.75rem;">🏥</div>
+      <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">Insurance & Claims</div>
+      <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.6;">Detect manipulated claims photos. Timestamp evidence at submission.</div>
+    </div>
   </div>
 
-  <!-- ASSETS PANEL -->
-  <div id="panel-assets" class="panel">
-    <div id="assetsList"><div class="empty-state"><span class="spinner"></span> Loading assets...</div></div>
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; max-width: 900px; margin: 1.25rem auto 0;">
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; transition: all 0.3s; cursor: default;" onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="font-size: 2rem; margin-bottom: 0.75rem;">🏛️</div>
+      <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">Government</div>
+      <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.6;">Authenticate official records and prevent document fraud at scale.</div>
+    </div>
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; transition: all 0.3s; cursor: default;" onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="font-size: 2rem; margin-bottom: 0.75rem;">🤖</div>
+      <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">AI Platforms</div>
+      <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.6;">Label AI-generated content at creation. Comply with emerging regulations.</div>
+    </div>
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; transition: all 0.3s; cursor: default;" onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="font-size: 2rem; margin-bottom: 0.75rem;">🏦</div>
+      <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">Financial Services</div>
+      <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.6;">Verify document authenticity for KYC, audits, and regulatory compliance.</div>
+    </div>
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; transition: all 0.3s; cursor: default;" onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+      <div style="font-size: 2rem; margin-bottom: 0.75rem;">🔬</div>
+      <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem;">Research & Science</div>
+      <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.6;">Anchor datasets and results. Prevent fabrication in peer review.</div>
+    </div>
   </div>
-</main>
+</section>
 
+<!-- APP -->
+<section class="app-section" id="app">
+  <div class="section-label">Try It Now</div>
+  <h2 class="section-title" style="margin-bottom: 0.75rem;">Anchor & verify files</h2>
+  <p class="section-desc">Upload a file to create its genesis anchor, or verify any file against its chain of custody.</p>
+
+  <div class="app-container">
+    <div class="app-wrapper">
+      <div class="app-glow"></div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('upload')">Upload</button>
+        <button class="tab" onclick="switchTab('verify')">Verify</button>
+        <button class="tab" onclick="switchTab('assets')">Assets</button>
+      </div>
+
+      <!-- UPLOAD PANEL -->
+      <div id="panel-upload" class="panel active">
+        <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <span class="icon">◈</span>
+          <div class="label">Drop a file or click to upload</div>
+          <div class="sublabel">File is uploaded to Provenance Layer and anchored with SHA-256</div>
+        </div>
+        <input type="file" id="fileInput" onchange="handleUpload(this.files[0])">
+        <div id="uploadResult"></div>
+      </div>
+
+      <!-- VERIFY PANEL -->
+      <div id="panel-verify" class="panel">
+        <div class="verify-input">
+          <input type="text" id="verifyHash" placeholder="Paste SHA-256 hash to verify...">
+          <button class="btn" onclick="verifyByHash()">Verify</button>
+        </div>
+        <div class="or-divider">— or —</div>
+        <div class="upload-zone" id="verifyDropZone" onclick="document.getElementById('verifyFileInput').click()" style="padding: 2rem;">
+          <span class="icon" style="font-size: 1.5rem;">🔍</span>
+          <div class="label">Drop a file to verify its integrity</div>
+          <div class="sublabel">File is hashed locally — never uploaded</div>
+        </div>
+        <input type="file" id="verifyFileInput" onchange="verifyFile(this.files[0])">
+        <div id="verifyResult"></div>
+      </div>
+
+      <!-- ASSETS PANEL -->
+      <div id="panel-assets" class="panel">
+        <div id="assetsList"><div class="empty-state"><span class="spinner"></span> Loading assets...</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INTEGRATE -->
+<section class="section reveal" id="integrate">
+  <div class="section-label">Integrate</div>
+  <h2 class="section-title">Three lines of code. That's it.</h2>
+  <p class="section-desc">Add cryptographic provenance to any application with our SDK. Works in Node.js, browsers, and TypeScript.</p>
+
+  <div style="max-width: 680px; margin: 3rem auto 0; display: flex; flex-direction: column; gap: 2rem;">
+
+    <!-- Install -->
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+      <div style="padding: 0.6rem 1rem; background: var(--surface-raised); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--green);"></span>
+        <span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-dim);">Terminal</span>
+      </div>
+      <pre style="padding: 1.25rem; font-family: var(--font-mono); font-size: 0.85rem; color: var(--text); overflow-x: auto; line-height: 1.6;"><span style="color: var(--text-dim);">$</span> <span style="color: var(--green);">npm install</span> @provenance/sdk</pre>
+    </div>
+
+    <!-- Anchor -->
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+      <div style="padding: 0.6rem 1rem; background: var(--surface-raised); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent);"></span>
+          <span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-dim);">Anchor a file</span>
+        </div>
+        <span style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted);">anchor.js</span>
+      </div>
+      <pre style="padding: 1.25rem; font-family: var(--font-mono); font-size: 0.82rem; color: var(--text); overflow-x: auto; line-height: 1.8;"><span style="color: var(--accent-light);">import</span> { anchor } <span style="color: var(--accent-light);">from</span> <span style="color: var(--green);">'@provenance/sdk'</span>
+
+<span style="color: var(--text-dim);">// One line — file is hashed and anchored</span>
+<span style="color: var(--accent-light);">const</span> proof = <span style="color: var(--accent-light);">await</span> <span style="color: #c084fc;">anchor</span>(<span style="color: var(--green);">'./photo.jpg'</span>)
+
+console.<span style="color: #c084fc;">log</span>(proof.asset_id)   <span style="color: var(--text-dim);">// "a1b2c3d4e5f67890"</span>
+console.<span style="color: #c084fc;">log</span>(proof.hash)       <span style="color: var(--text-dim);">// "sha256:..."</span>
+console.<span style="color: #c084fc;">log</span>(proof.action)     <span style="color: var(--text-dim);">// "genesis"</span></pre>
+    </div>
+
+    <!-- Verify -->
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+      <div style="padding: 0.6rem 1rem; background: var(--surface-raised); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--green);"></span>
+          <span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-dim);">Verify integrity</span>
+        </div>
+        <span style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted);">verify.js</span>
+      </div>
+      <pre style="padding: 1.25rem; font-family: var(--font-mono); font-size: 0.82rem; color: var(--text); overflow-x: auto; line-height: 1.8;"><span style="color: var(--accent-light);">import</span> { verify } <span style="color: var(--accent-light);">from</span> <span style="color: var(--green);">'@provenance/sdk'</span>
+
+<span style="color: var(--text-dim);">// Check any file against its provenance chain</span>
+<span style="color: var(--accent-light);">const</span> result = <span style="color: var(--accent-light);">await</span> <span style="color: #c084fc;">verify</span>(<span style="color: var(--green);">'./photo.jpg'</span>)
+
+<span style="color: var(--accent-light);">if</span> (result.chain_status === <span style="color: var(--green);">'VERIFIED'</span>) {
+  console.<span style="color: #c084fc;">log</span>(<span style="color: var(--green);">'✓ Authentic'</span>)     <span style="color: var(--text-dim);">// Chain intact</span>
+} <span style="color: var(--accent-light);">else</span> {
+  console.<span style="color: #c084fc;">log</span>(<span style="color: var(--green);">'✗ Tampered'</span>)      <span style="color: var(--text-dim);">// Chain broken</span>
+}</pre>
+    </div>
+
+    <div style="text-align: center; margin-top: 2rem;">
+      <a href="https://github.com/cbenjamin25/provenance-layer/tree/main/sdk" target="_blank" style="color: var(--accent-light); font-size: 0.85rem; text-decoration: none; font-weight: 500;">View SDK documentation →</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
 <footer>
-  Provenance Layer · Cryptographic chain of custody for digital media
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="footer-brand-icon">◈</span>
+      <span class="footer-brand-text">Provenance Layer</span>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/cedricbenjamin/provenance-layer" target="_blank">GitHub</a>
+      <a href="https://github.com/cedricbenjamin/provenance-layer#api-reference" target="_blank">API Docs</a>
+      <a href="https://github.com/cedricbenjamin/provenance-layer#sdk" target="_blank">SDK</a>
+    </div>
+  </div>
+  <div class="footer-copy">© 2025 Provenance Layer. Cryptographic chain of custody for digital media.</div>
 </footer>
 
 <script>
@@ -606,6 +1410,22 @@
     document.querySelectorAll('.tab')[name === 'upload' ? 0 : name === 'verify' ? 1 : 2].classList.add('active');
     document.getElementById(`panel-${name}`).classList.add('active');
   }
+
+  // --- Scroll reveal ---
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // --- Nav scroll effect ---
+  window.addEventListener('scroll', () => {
+    document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 50);
+  });
 </script>
 
 </body>
